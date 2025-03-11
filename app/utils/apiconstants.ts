@@ -1,7 +1,7 @@
 //#region API_URL
 
-export const API_URL = "http://localhost:3001/api";
-// export const API_URL="http://localhost:3000/api"
+// export const API_URL = "http://localhost:3001/api";
+export const API_URL = "https://igris-six.vercel.app/api";
 export const BACKEND_URL = "http://localhost:5000";
 // export const BACKEND_URL = "http://localhost:5000";
 //#endregion
