@@ -16,7 +16,7 @@ export default function NavBar() {
   };
 
   return (
-    <div className=" flex mt-5 max-h-16 gap-7 px-20 w-full flex-row items-center justify-between h-screen">
+    <nav className="mt-5 max-h-16 gap-7 px-20 w-full flex flex-row items-center justify-between">
       <span
         onClick={() => handleTabClick("home")}
         className="cursor-pointer text-white text-2xl font-bold"
@@ -48,6 +48,6 @@ export default function NavBar() {
       <div className="flex flex-row  gap-3 items-center justify-center h-screen">
         {/* contact */}
       </div>
-    </div>
+    </nav>
   );
 }
