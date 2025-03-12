@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { API_URL_IMAGE_TO_BASE64 } from "@/app/utils/apiconstants";
 import axios from "axios";
 import { Copy, Check } from "lucide-react";
@@ -12,8 +12,11 @@ const ImageToBase64Converter = () => {
   const [base64, setBase64] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"url" | "upload">("url");
+  const [activeTab, setActiveTab] = useState<"url" | "upload" | "base64">(
+    "url"
+  );
   const [copied, setCopied] = useState(false);
+  const [isJson, setIsJson] = useState(false);
 
   const handleConvertUrlToBase64 = async () => {
     if (!imageUrl) {
@@ -43,7 +46,7 @@ const ImageToBase64Converter = () => {
       setLoading(false);
     }
   };
-  const handleActiveTab = (tab: "url" | "upload") => {
+  const handleActiveTab = (tab: "url" | "upload" | "base64") => {
     setActiveTab(tab);
     setImageUrl("");
     setFile(null);
@@ -88,8 +91,91 @@ const ImageToBase64Converter = () => {
     setError("");
   };
 
+  const extractBase64 = (input: string) => {
+    // Try to find base64 in common patterns
+    const base64Regex = /(?:data:[\w/+-]+;base64,)?([A-Za-z0-9+/=]+)/;
+    const match = input.match(base64Regex);
+
+    // Try to parse JSON if no direct match
+    if (!match) {
+      try {
+        const json = JSON.parse(input);
+        if (json.data || json.base64) {
+          return json.data || json.base64;
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+
+    return match ? match[1] : null;
+  };
+
+  const handleConvertBase64ToImage = () => {
+    try {
+      if (!base64) {
+        setError("Please enter a base64 string");
+        return;
+      }
+
+      const extracted = extractBase64(base64);
+      if (!extracted) {
+        throw new Error("No valid base64 found in input");
+      }
+
+      // Validate if it's actually a base64 string
+      if (!/^[A-Za-z0-9+/=]+$/.test(extracted)) {
+        throw new Error("Invalid base64 characters detected");
+      }
+
+      // Try to determine MIME type
+      const mimeMatch = base64.match(/data:([\w/+-]+);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+
+      if (!mimeType.startsWith("image/")) {
+        throw new Error("Base64 does not contain image data");
+      }
+
+      const fullBase64 = `data:${mimeType};base64,${extracted}`;
+      setBase64(fullBase64);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid base64 input");
+    }
+  };
+
+  const handleBase64Change = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setBase64(value);
+
+    // Check if input is JSON
+    try {
+      JSON.parse(value);
+      setIsJson(true);
+    } catch {
+      setIsJson(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleEnter = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        if (activeTab === "url") {
+          if (imageUrl.trim()) handleConvertUrlToBase64();
+        } else if (activeTab === "upload") {
+          if (file) handleConvertFileToBase64();
+        } else if (activeTab === "base64") {
+          if (base64.trim()) handleConvertBase64ToImage();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleEnter);
+    return () => document.removeEventListener("keydown", handleEnter);
+  }, [activeTab, imageUrl, file, base64]);
+
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(base64).then(
+    const textToCopy = isJson ? JSON.stringify(JSON.parse(base64)) : base64;
+    navigator.clipboard.writeText(textToCopy).then(
       () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -125,8 +211,17 @@ const ImageToBase64Converter = () => {
           >
             Upload
           </button>
+          <button
+            className={`py-3 px-6 font-medium transition-all duration-200 ${
+              activeTab === "base64"
+                ? "border-b-2 border-white text-white"
+                : "text-white/50 hover:text-white/80"
+            }`}
+            onClick={() => handleActiveTab("base64")}
+          >
+            base64 to image
+          </button>
         </div>
-
         <div className="mb-8">
           {activeTab === "url" ? (
             <div className="space-y-6">
@@ -134,7 +229,7 @@ const ImageToBase64Converter = () => {
                 <input
                   type="text"
                   placeholder="Paste image URL here"
-                  className="w-full  border-b-2 border-white/50 focus:border-white py-3 px-2 outline-none transition-all duration-200 placeholder-white/50"
+                  className="w-full border-b-2 border-white/50 focus:border-white py-3 px-2 outline-none transition-all duration-200 placeholder-white/50"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                 />
@@ -149,7 +244,7 @@ const ImageToBase64Converter = () => {
                 {loading ? "Converting..." : "Convert"}
               </ConvertButton>
             </div>
-          ) : (
+          ) : activeTab === "upload" ? (
             <div className="space-y-6">
               <div className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center hover:border-white/40 transition-all duration-200">
                 <input
@@ -179,9 +274,49 @@ const ImageToBase64Converter = () => {
                   )}
                 </label>
               </div>
+
               <ConvertButton
                 onClick={handleConvertFileToBase64}
                 disabled={loading || !file}
+                loading={loading}
+                fullWidth={true}
+                type="button"
+              >
+                {loading ? "Converting..." : "Convert"}
+              </ConvertButton>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="relative">
+                {isJson ? (
+                  <pre className="bg-white/5 p-4 rounded-lg">
+                    <code>
+                      <textarea
+                        value={JSON.stringify(JSON.parse(base64), null, 2)}
+                        onChange={(e) => {
+                          try {
+                            const parsed = JSON.parse(e.target.value);
+                            setBase64(JSON.stringify(parsed));
+                          } catch (err) {
+                            setBase64(e.target.value);
+                          }
+                        }}
+                        className="w-full h-48 font-mono text-sm bg-transparent outline-none resize-none"
+                      />
+                    </code>
+                  </pre>
+                ) : (
+                  <textarea
+                    placeholder="Paste base64 or JSON here"
+                    className="w-full border-b-2 border-white/50 focus:border-white py-3 px-2 outline-none transition-all duration-200 placeholder-white/50 bg-transparent h-32 resize-none"
+                    value={base64}
+                    onChange={handleBase64Change}
+                  />
+                )}
+              </div>
+              <ConvertButton
+                onClick={handleConvertBase64ToImage}
+                disabled={loading || !base64}
                 loading={loading}
                 fullWidth={true}
                 type="button"
@@ -198,12 +333,27 @@ const ImageToBase64Converter = () => {
           </div>
         )}
 
-        {base64 && (
-          <div className="space-y-6 over">
-            {base64.startsWith("data:image") && (
-              <div className="flex justify-center  border border-white/10 rounded-lg overflow-hidden"></div>
+        {base64 && activeTab === "base64" && (
+          <div className="space-y-6">
+            {base64.startsWith("data:image") ? (
+              <div className="flex justify-center border border-white/10 rounded-lg overflow-hidden">
+                <img
+                  src={base64}
+                  alt="Converted"
+                  className="max-w-full h-auto"
+                />
+              </div>
+            ) : (
+              <div className="p-4 overflow-x-hidden border border-white/10 rounded-lg bg-white/5 max-h-48 overflow-auto text-white/70 text-sm break-all">
+                {isJson ? (
+                  <pre className="whitespace-pre-wrap">
+                    <code>{JSON.stringify(JSON.parse(base64), null, 2)}</code>
+                  </pre>
+                ) : (
+                  base64
+                )}
+              </div>
             )}
-
             <div className="relative ">
               <div className="p-4  overflow-x-hidden border border-white/10 rounded-lg bg-white/5 max-h-48 overflow-auto text-white/70 text-sm break-all">
                 {base64}
