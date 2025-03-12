@@ -17,3 +17,7 @@ export const API_URL_IMAGE_TO_BASE64 = `${API_URL}/imagetobase64`;
 //#region API_URL_BASE64_TO_IMAGE
 export const API_URL_BASE64_TO_IMAGE = `${API_URL}/base64toimage`;
 //#endregion
+
+//#region API_URL_BG_REMOVER
+export const API_URL_BG_REMOVER = `${API_URL}/bgremover`;
+//#endregion

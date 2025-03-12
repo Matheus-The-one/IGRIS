@@ -12,7 +12,7 @@ export default function NavBar() {
 
   const handleTabClick = (tab: "home" | "image" | "bgremover") => {
     setActiveTab(tab);
-    router.push(`/${tab}`);
+    router.push(`/pages/${tab}`);
   };
 
   return (
