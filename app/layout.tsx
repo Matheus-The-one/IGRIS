@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IGRIS",
+  title: "igris",
   description: "Your app description",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
