@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       { image: base64Image }
     );
     const resultImage = await axios.post(
-      "http://localhost:5000/api/resources/upload-image",
+      "https://stamoaibackend-153969372242.us-central1.run.app/api/resources/upload-image",
       {
         ImageData: apiResponse.data.image,
       }
