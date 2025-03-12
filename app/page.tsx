@@ -11,7 +11,7 @@ const Page = () => {
     const timer = setTimeout(() => {
       setLoading(false);
       // Navigate to home page after loading
-      router.push("/home");
+      router.push("/pages/home");
     }, 300); // 3 seconds loading time
 
     return () => clearTimeout(timer);
