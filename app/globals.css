@@ -14,6 +14,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  --color-igris: #880808;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
